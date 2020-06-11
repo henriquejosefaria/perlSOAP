@@ -1,6 +1,10 @@
 
+package cmd_soap_msg;
+
 use SOAP::WSDL::Client; # para criar a ligação com o servidor SOAP
  use Encode;            # para encode e decode
+
+ 
 sub get_wsdl{
 
 	@wsdl = ('https://preprod.cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc?wsdl',

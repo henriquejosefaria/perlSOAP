@@ -1,4 +1,6 @@
 
+package cmd_config;
+
 #Ficheiro de configuração do URL do WSDL a utilizar e da APPLICATION_ID fornecida pela AMA.
 
 
