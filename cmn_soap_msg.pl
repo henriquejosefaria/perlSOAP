@@ -13,7 +13,8 @@ sub get_wsdl{
 
 	my ($input) = @_;
 
-	# Verifica se número é válido (0 ou 1)
+	# Verifica se número é natural e é válido (0 ou 1)
+	die 'Invalid choice!' unless ($choice =~ /^\d+$/)
 	$choice = int($input)
 	die 'Invalid choice!' unless ($choice == 0 or $choice == 1)
 
@@ -25,7 +26,7 @@ sub get_wsdl{
 }
 
 # GetCertificate(applicationId: xsd:base64Binary, userId: xsd:string)
-sub  GetCertificate{
+sub  getcertificate{
 
 	# Só aceitamos nesta função 2 argumentos
 	$number_of_args = scalar(@_);
@@ -40,7 +41,7 @@ sub  GetCertificate{
   	#{ # $var is a number
   	#}
 	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
-	die "Only numbers are accepted!!" unless (($choice =~ /^\d+$/) && ($appId =~ /^\d+$/) && ($userId =~ /^\d+$/))
+	die "Only numbers are accepted!!" unless (($appId =~ /^\d+$/) && ($userId =~ /^\d+$/))
 
 	#Criação de um dicionário para teste
 	$encodedAppId = encode('UTF-8',$appId)
