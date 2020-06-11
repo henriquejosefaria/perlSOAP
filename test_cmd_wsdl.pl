@@ -1,6 +1,7 @@
 
 use Getopt::ArgParse;
-
+use File::Basename;
+use Crypt::X509;
 
 use cmd_config;
 use cmd_soap_msg;
@@ -17,28 +18,28 @@ sub main{
     
     $number_of_args = scalar(@_);
 
-    die 'Use -h for usage:\n  ', @_[0], '-h for all operations\n  ', @_[0],
+    my($filename, $dirs, $suffix) = fileparse($path)
+    die 'Use -h for usage:\n  ', $filename, '-h for all operations\n  ', $filename,
     	'<oper1> -h for usage of operation <oper1>' unless $number_of_args > 1
 
     #Faz o parser dos argumentos recebidos
     $args = args_parse()
 
     $client = cmd_soap_msg::get_wsdl(args.prod)
-    my $opt = @_[0] # opção escolhida pelo utilizador
-    if $opt == 'test':
+    my $opt = _[0] # opção escolhida pelo utilizador
+    if $opt == 'test'{
     	testall($client,$args)
-    elsif $opt == 'gc':
-    	cmd_soap_msg::getcertificate($client,$args)
-    elsif $opt == 'ms':
-    	cmd_soap_msg::ccmovelsign($client,$args)
-    elsif $opt == 'mms':
-    	cmd_soap_msg::ccmovelmultiplesign($client,$args)
-    elsif $opt == 'otp':
-    	cmd_soap_msg::validate_otp($client,$args)
-    else:
+    } elsif $opt == 'gc'{
+    	print cmd_soap_msg::getcertificate($client,$args)
+    } elsif $opt == 'ms'{
+    	print cmd_soap_msg::ccmovelsign($client,$args)
+    } elsif $opt == 'mms'{
+    	print cmd_soap_msg::ccmovelmultiplesign($client,$args)
+    } elsif $opt == 'otp'{
+    	print cmd_soap_msg::validate_otp($client,$args)
+    } else{
     	die "Select a proper Option!!" 
-
-    print(args.func(client, args))
+    }
 }
 
 sub args_parse{
@@ -155,6 +156,22 @@ sub testall{
     print '\n+++ Test All inicializado +++\n'
     print ' 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin')
     print('10% ... A contactar servidor SOAP CMD para operação GetCertificate')
-    cmd_certs = cmd_soap_msg::getcertificate(client, args)
+    my ($client, $args) = @_;
+    $cmd_certs = cmd_soap_msg::getcertificate($client, $args)
+    if (defined $cmd_certs){
+    	$decoded = Crypt::X509->new(cert => $cmd_certs);
+    	%certs_chain = ('user' => ,'ca' => , 'root' =>)
+
+
+
+
+
+
+
+
+    } else{
+    		die 'Impossível obter certificado'
+    	}
+
 
 }
