@@ -2,6 +2,11 @@
 use Getopt::ArgParse;
 use File::Basename;
 use Crypt::X509;
+use Crypt::OpenSSL::RSA;
+use File::Slurp;
+use Try::Tiny;
+use Digest::SHA qw(sha256)
+use MIME::Base64;
 
 use cmd_config;
 use cmd_soap_msg;
@@ -147,31 +152,67 @@ sub args_parse{
     	['-D', '--debug', action => 'store_true', help => 'show debug information']
     	);
 
-    return parser
+    return parser.parse_args()
 }
 
 # Testa todos os comandos
 sub testall{
-	print '$TEXT \n  $VERSION'
-    print '\n+++ Test All inicializado +++\n'
-    print ' 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin')
-    print('10% ... A contactar servidor SOAP CMD para operação GetCertificate')
+	print '$TEXT \n  $VERSION';
+    print '\n+++ Test All inicializado +++\n';
+    print ' 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin';
+    print '10% ... A contactar servidor SOAP CMD para operação GetCertificate';
     my ($client, $args) = @_;
-    $cmd_certs = cmd_soap_msg::getcertificate($client, $args)
+    $cmd_certs = cmd_soap_msg::getcertificate($client, $args);
     if (defined $cmd_certs){
     	$decoded = Crypt::X509->new(cert => $cmd_certs);
-    	%certs_chain = ('user' => ,'ca' => , 'root' =>)
-
-
-
-
-
-
-
-
+        if ($decoded->notBefore < time()) {
+            die "Certificate: not yet valid!";
+        }
+        if ($decoded->not_after < time()) {
+            die "Certificate: invalid expiration time!";
+        }
+    	%certs_chain = ('user' => $decoded->Subject,'ca' => $decoded->Issuer, 'root' => $decoded->authorityCertIssuer);
+        print '20% ... Certificado emitido para $certs_chain[\'user\'] pela Entidade de Certificação certs_chain[\'ca\'] na hierarquia do certs_chain[\'root\']';
+        print '30% ... Leitura do ficheiro $args.file';
+        try{
+            my $file_content = read_file(args->file);
+        } catch{
+            die 'Ficheiro não encontrado.';
+        }
+        print '40% ... Geração de hash do ficheiro $args.file';
+        $args->hash = sha256($file_content) # Geração do Digest
+        $decoded_arg = decode_base64(encode_base64($args->hash));
+        print '50% ... Hash gerada (em base64): $decoded_arg';
+        print '60% ... A contactar servidor SOAP CMD para operação CCMovelSign';
+        $args->docName = args->file;
+        @res = cmd_soap_msg::ccmovelsign($client, $args);
+        if (@res['Code'] != '200'){
+            die 'Erro $res[\'Code\']. Valide o PIN introduzido.';
+        }
+        print '70% ... ProcessID devolvido pela operação CCMovelSign: $res['ProcessId']';
+        $args->ProcessId = @res['ProcessId'];
+        print '80% ... A iniciar operação ValidateOtp';
+        print 'Introduza o OTP recebido no seu dispositivo: ';
+        $opt = <STDIN>;
+        # Removes new line from the input 
+        chomp $opt; 
+        $args->OPT = $opt;
+        print '90% ... A contactar servidor SOAP CMD para operação ValidateOtp';
+        @res = cmd_soap_msg::validate_otp($client, $args);
+        if(@res['Status']['Code'] != '200'){
+            die 'Erro @res[\'Status\'][\'Code\']. @res[\'Status\'][\'Message\']';
+        }
+        $decoded_res = decode_base64(encode_base64(res['Signature']));
+        print '100% ... Assinatura (em base 64) devolvida pela operação ValidateOtp: $decoded_res';
+        print '110% ... A validar assinatura ...';
+        $digest = sha256($file_content);
+        my $rsa_pub = Crypt::OpenSSL::RSA->new_public_key($decoded->pubkey);
+        my $valid = $rsa_pub->do_verify($digest, @res['Signature']);
+        assert($valid,'Signature Verification!');
+        print 'Assinatura verificada com sucesso, baseada na assinatura recebida, na hash gerada e na chave pública do certificado de @certs_chain[\'user\']';
+        return '\n+++ Test All finalizado +++\n'
     } else{
     		die 'Impossível obter certificado'
     	}
-
-
+    return 'Erro ao iniciar teste!'
 }
