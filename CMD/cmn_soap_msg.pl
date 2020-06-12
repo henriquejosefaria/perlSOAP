@@ -1,28 +1,27 @@
-
 package cmd_soap_msg;
 
 use SOAP::WSDL::Client; # para criar a ligação com o servidor SOAP
- use Encode;            # para encode e decode
+use Encode;             # para encode e decode
 
  
 sub get_wsdl{
 
 	@wsdl = ('https://preprod.cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc?wsdl',
-	        'https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc?wsdl')	
+	        'https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc?wsdl');
 
 
 	my ($input) = @_;
 
 	# Verifica se número é natural e é válido (0 ou 1)
-	die 'Invalid choice!' unless ($choice =~ /^\d+$/)
-	$choice = int($input)
-	die 'Invalid choice!' unless ($choice == 0 or $choice == 1)
+	die "Invalid choice!" unless ($input =~ "/^\d+$/");
+	$choice = int($input);
+	die 'Invalid choice!' unless ($choice == 0 or $choice == 1);
 
 	my $soap = SOAP::WSDL::Client->new({
     	proxy => $wsdl[choice]
    		});
 
-	return $soap
+	return $soap;
 }
 
 # GetCertificate(applicationId: xsd:base64Binary, userId: xsd:string)
@@ -41,14 +40,15 @@ sub  getcertificate{
   	#{ # $var is a number
   	#}
 	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
-	die "Only numbers are accepted!!" unless (($appId =~ /^\d+$/) && ($userId =~ /^\d+$/))
+	die "Only numbers are accepted!!" unless (($appId =~ /^\d+$/) && ($userId =~ /^\d+$/));
 
 	#Criação de um dicionário para teste
-	$encodedAppId = encode('UTF-8',$appId)
-	%data = ('applicationId' => $encodedAppId , 'userId' => $userId)
+	$encodedAppId = encode('UTF-8',$appId);
+	%data = ('applicationId' => $encodedAppId , 'userId' => $userId);
 
-	$soap = get_wsdl($choice)
+	$soap = get_wsdl($choice);
 
 	#Obtenção do certificado
-	$soap->call('GetCertificate',$data)
+	return $soap->call('GetCertificate',$data);
+	
 }

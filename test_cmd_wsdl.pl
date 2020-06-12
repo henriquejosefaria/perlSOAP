@@ -5,7 +5,7 @@ use Crypt::X509;
 use Crypt::OpenSSL::RSA;
 use File::Slurp;
 use Try::Tiny;
-use Digest::SHA qw(sha256)
+use Digest::SHA qw(sha256);
 use MIME::Base64;
 
 use cmd_config;
@@ -171,7 +171,7 @@ sub testall{
         if ($decoded->not_after < time()) {
             die "Certificate: invalid expiration time!";
         }
-    	%certs_chain = ('user' => $decoded->Subject,'ca' => $decoded->Issuer, 'root' => $decoded->authorityCertIssuer);
+    	%certs_chain = ('user' => $decoded->Subject, 'ca' => $decoded->Issuer, 'root' => $decoded->authorityCertIssuer);
         print '20% ... Certificado emitido para $certs_chain[\'user\'] pela Entidade de Certificação certs_chain[\'ca\'] na hierarquia do certs_chain[\'root\']';
         print '30% ... Leitura do ficheiro $args.file';
         try{
@@ -180,6 +180,7 @@ sub testall{
             die 'Ficheiro não encontrado.';
         }
         print '40% ... Geração de hash do ficheiro $args.file';
+
         $args->hash = sha256($file_content) # Geração do Digest
         $decoded_arg = decode_base64(encode_base64($args->hash));
         print '50% ... Hash gerada (em base64): $decoded_arg';
