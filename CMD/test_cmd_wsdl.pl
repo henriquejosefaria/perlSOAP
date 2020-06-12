@@ -7,6 +7,9 @@ use Try::Tiny;
 use Digest::SHA qw(sha256);
 use MIME::Base64;
 
+use File::Basename qw(dirname);
+use Cwd  qw(abs_path);
+use lib dirname(dirname abs_path $0) . '/CMD/';
 use cmd_config;
 use cmd_soap_msg;
 

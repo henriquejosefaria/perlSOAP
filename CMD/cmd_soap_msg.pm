@@ -1,4 +1,4 @@
-package cmd_soap_msg;
+package My::cmd_soap_msg;
 
 use SOAP::WSDL::Client; # para criar a ligação com o servidor SOAP
 use Encode;             # para encode e decode
