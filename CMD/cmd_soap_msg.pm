@@ -41,7 +41,7 @@ sub  getcertificate{
 
 	# Só aceitamos nesta função 2 argumentos
 	$number_of_args = scalar(@_);
-	print "passed args = @args\n";
+	print "passed args = @_\n";
 	print "$number_of_args\n";
 	die "U can't pass more than 2 variables!!" unless $number_of_args == 2;
 

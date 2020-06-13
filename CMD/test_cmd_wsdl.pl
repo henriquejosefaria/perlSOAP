@@ -65,7 +65,7 @@ sub args_parse{
         'prod:i' => \($args[7] = 0), #default value is 0 -> usa prepod
         'd:i'    => \($args[8] = 0), #default value is 0 -> sem debug
     );
-    if(help){
+    if(help == 1){
         switch($args[0]){
             case "test"    { print "Automatically test all commands\n";  info(@a = ('-f','-u','-p')); }
             case "gc"      { print "Get user certificate\n";             info(@a = ('-u')); }
@@ -104,7 +104,7 @@ sub testall{
     print " 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin\n";
     print "10% ... A contactar servidor SOAP CMD para operação GetCertificate\n";
     my ($client, $args) = @_;
-    $cmd_certs = cmd_soap_msg::getcertificate($client, $args);
+    $cmd_certs = cmd_soap_msg::getcertificate($client, @args);
     if (not defined($cmd_certs)){
         die "Impossível obter certificado";
     }
