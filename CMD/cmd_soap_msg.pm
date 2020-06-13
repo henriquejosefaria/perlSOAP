@@ -1,7 +1,16 @@
 package cmd_soap_msg;
 
-use SOAP::WSDL::Client; # para criar a ligação com o servidor SOAP
+# preparation
+use SOAP::Lite;
+use SOAP::WSDL;
+use XML::Compile::WSDL11;      # use WSDL version 1.1
+use XML::Compile::SOAP11;      # use SOAP version 1.1
+use XML::Compile::Transport::SOAPHTTP;
 use Encode;             # para encode e decode
+
+# you want some trace?
+use Log::Report mode => 'DEBUG';
+
 
 # Função para ativar o debug, permitindo mostrar mensagens enviadas e recebidas do servidor SOAP
 sub debug{
@@ -15,19 +24,16 @@ sub get_wsdl{
 	        'https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc?wsdl');
 
 
-	my ($input) = @_;
-	
-	# Verifica se número é 0 ou 1 e se a string tem comprimento 1
-	die "Invalid choice!" unless ($input =~ /[01]+/ && length($input) == 1);
+	my ($input) = @_[0];
+
+	# não há necessidade de testar o prod por este ser 0 ou 1 sempre 
+	# garantido pelo Getopt ao fazer o parsing do @ARGV
+
 
 	$choice = int($input);
-	die 'Invalid choice!' unless ($choice == 0 or $choice == 1);
+ 
 
-	my $soap = SOAP::WSDL::Client->new({
-    	proxy => $wsdl[choice]
-   		});
-
-	return $soap;
+	return $wsdl[$choice]
 }
 
 
@@ -41,30 +47,51 @@ sub  getcertificate{
 
 	# Só aceitamos nesta função 2 argumentos
 	$number_of_args = scalar(@_);
-	print "passed args = @_\n";
-	print "$number_of_args\n";
-	die "U can't pass more than 2 variables!!" unless $number_of_args == 2;
 
+	#Obter a escolha do WSDL
+	my $res = @_[0];
 	#obter a applicationId e o userId dos argumentos passados
-	my ($choice,$appId,$userId) = @_;
+	my $appId  = $_[1][6];
+	my $userId = $_[1][2];
+	print "appId = $appId\n";
+	print "userId = $userId\n";
 
-	# Verificar se ambos os parâmetros são números
-	#EXEMPLO:
-	#if ( ($var ne "0") && ($var == 0))
-  	#{ # $var is a number
-  	#}
+
 	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
-	die "Only numbers are accepted!!" unless (($appId =~ /^\d+$/) && ($userId =~ /^\d+$/));
+	die "Only numbers are accepted2!!" unless ($appId =~ /^\d+$/ && $userId =~ /\+\d+/);
 
 	#Criação de um dicionário para teste
 	$encodedAppId = encode('UTF-8',$appId);
 	%data = ('applicationId' => $encodedAppId , 'userId' => $userId);
+	#método a ser usado
+	$method = "GetCertificate";
 
-	$soap = get_wsdl($choice);
-
-	#Obtenção do certificado
-	return $soap->call('GetCertificate',$data);
+	#Criação do cliente
+	#Tentativa 1
+	#my $wsdl = SOAP::Lite->new(uri => 'urn:$method' ,proxy => $res);
+	#my $answer = $wsdl->call(%data);
+	#my $answer2 = $wsdl->call($method,%data)->result();
+	#print "answer = $answer2\n";
+	
+	#Tentativa 2
+	my $soap = SOAP::WSDL->new(wsdl => $res);
+	my $answer = $soap->call($method, %data);
+	print "answer = $answer";
+	# capture useful trace information
+	#my ( $answer, $trace ) = $wsdl->call( $method, $data );
+	return $answer
 }
+#begin comment
+#<wsdl:operation name="GetCertificate">
+#<soap:operation soapAction="http://Ama.Authentication.Service/CCMovelSignature/GetCertificate" style="document"/>
+#<wsdl:input>
+#<soap:body use="literal"/>
+#</wsdl:input>
+#<wsdl:output>
+#<soap:body use="literal"/>
+#</wsdl:output>
+#</wsdl:operation>
+
 
 # CCMovelSign(request: ns2:SignRequest) -> CCMovelSignResult: ns2:SignStatus
 # ns2:SignRequest(ApplicationId: xsd:base64Binary, DocName: xsd:string,

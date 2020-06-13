@@ -28,9 +28,8 @@ die "Use -h for usage:\n  $0, -h for all operations\n  $0, <oper1> -h for usage 
 
 #Faz o parser dos argumentos recebidos
 @args = &args_parse;
-print "args = @args\n";
 
-die "Argumento passado (prod) deve ser 0 ou 1 não indefinido." unless defined($args[5]);
+die "Argumento passado (prod) deve ser 0 ou 1 não indefinido." unless defined($args[7]);
 $client = cmd_soap_msg::get_wsdl($args[5]);
 
 switch($args[0]) {
@@ -43,14 +42,16 @@ switch($args[0]) {
 }
 
 
-# -h    -> ajuda
-# -o    -> opção escolhida (test, getcertificat,...)
-# -f    -> nome do ficheiro
-# -u    -> número do utilizador (ex:+351 000000000)
-# -p    -> pin
-# -otp  -> processId
-# -prod -> escolher prepod ou pod {0,1}
-# -d    -> permite debug {0,1}
+# -h      -> ajuda
+# -o      -> opção escolhida (test, getcertificat,...)
+# -f      -> nome do ficheiro
+# -u      -> número do utilizador (ex:+351 000000000)
+# -p      -> pin
+# -otp    -> processId
+# -procId -> Process Id
+# -app    -> APPLICATION_ID
+# -prod   -> escolher prepod ou pod {0,1}
+# -d      -> permite debug {0,1}
 sub args_parse{
     my @args;
     GetOptions(
@@ -61,9 +62,9 @@ sub args_parse{
         'p:s'    => \$args[3],
         'otp:s'  => \$args[4],
         'procId' => \$args[5],
-        'app:s'  => \$args[6],
-        'prod:i' => \($args[7] = 0), #default value is 0 -> usa prepod
-        'd:i'    => \($args[8] = 0), #default value is 0 -> sem debug
+        'app:s'  => \($args[6] = $APPLICATION_ID), #default está definido no modulo cmd_config
+        'prod'   => \($args[7] = 0), #default value is 0 -> usa prepod
+        'd'      => \($args[8] = 0), #default value is 0 -> sem debug
     );
     if(help == 1){
         switch($args[0]){
@@ -104,7 +105,8 @@ sub testall{
     print " 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin\n";
     print "10% ... A contactar servidor SOAP CMD para operação GetCertificate\n";
     my ($client, $args) = @_;
-    $cmd_certs = cmd_soap_msg::getcertificate($client, @args);
+    $cmd_certs = cmd_soap_msg::getcertificate($client, \@args);
+    print "\n\n\n$cmd_certs\n\n\n";
     if (not defined($cmd_certs)){
         die "Impossível obter certificado";
     }
