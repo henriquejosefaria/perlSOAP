@@ -64,27 +64,10 @@ sub  getcertificate{
 	$method = "GetCertificate";
 
 	#Criação do cliente
-	#Tentativa 1
-	#my $wsdl = SOAP::Lite->new(uri => 'urn:$method' ,proxy => $res);
-	#my $answer = $wsdl->call(%data);
-	#my $answer2 = $wsdl->call($method,%data)->result();
-	#print "answer = $answer2\n";
-	
-	#Tentativa 2
-	#my $soap = SOAP::WSDL->new(uri => 'http://schemas.xmlsoap.org/wsdl/',wsdl => $res);
-	#my $answer = $soap->call($method, %data);
-	#print "answer = $answer";
-	
-	#Tentativa 3
-	#my $client = SOAP::Lite->new()
-	#$client->service($res);
-	#my $result = $soap->call($method, %data);
-	#return $answer
-
-	#Tentativa 4
 	$server =  SOAP::Lite->new(proxy => $res);
+	#Obtenção do certificado
 	$answer = $server -> call($method,%data) -> result;
-	print "res = $res\n";
+	
 	return $answer
 }
 
