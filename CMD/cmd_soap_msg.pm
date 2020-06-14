@@ -53,12 +53,9 @@ sub  getcertificate{
 	#obter a applicationId e o userId dos argumentos passados
 	my $appId  = $_[1][6];
 	my $userId = $_[1][2];
-	print "appId = $appId\n";
-	print "userId = $userId\n";
-
 
 	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
-	die "Only numbers are accepted2!!" unless ($appId =~ /^\d+$/ && $userId =~ /\+\d+/);
+	die "Only numbers are accepted!!" unless ($appId =~ /^\d+$/ && $userId =~ /\+\d+/);
 
 	#Criação de um dicionário para teste
 	$encodedAppId = encode('UTF-8',$appId);
@@ -74,23 +71,23 @@ sub  getcertificate{
 	#print "answer = $answer2\n";
 	
 	#Tentativa 2
-	my $soap = SOAP::WSDL->new(wsdl => $res);
-	my $answer = $soap->call($method, %data);
-	print "answer = $answer";
-	# capture useful trace information
-	#my ( $answer, $trace ) = $wsdl->call( $method, $data );
+	#my $soap = SOAP::WSDL->new(uri => 'http://schemas.xmlsoap.org/wsdl/',wsdl => $res);
+	#my $answer = $soap->call($method, %data);
+	#print "answer = $answer";
+	
+	#Tentativa 3
+	#my $client = SOAP::Lite->new()
+	#$client->service($res);
+	#my $result = $soap->call($method, %data);
+	#return $answer
+
+	#Tentativa 4
+	$server =  SOAP::Lite->new(proxy => $res);
+	$answer = $server -> call($method,%data) -> result;
+	print "res = $res\n";
 	return $answer
 }
-#begin comment
-#<wsdl:operation name="GetCertificate">
-#<soap:operation soapAction="http://Ama.Authentication.Service/CCMovelSignature/GetCertificate" style="document"/>
-#<wsdl:input>
-#<soap:body use="literal"/>
-#</wsdl:input>
-#<wsdl:output>
-#<soap:body use="literal"/>
-#</wsdl:output>
-#</wsdl:operation>
+
 
 
 # CCMovelSign(request: ns2:SignRequest) -> CCMovelSignResult: ns2:SignStatus
