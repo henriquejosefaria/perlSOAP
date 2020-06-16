@@ -4,7 +4,7 @@ package cmd_config;
 
 
 # ApplicationId da entidade, fornecida pela AMA
-$APPLICATION_ID = '0';
+$APPLICATION_ID = 'b826359c-06f8-425e-8ec3-50a97a418916';
 
 #Devolve APPLICATION_ID (fornecida pela AMA).
 sub get_appid{
