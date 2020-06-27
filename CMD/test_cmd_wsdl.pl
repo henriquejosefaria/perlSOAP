@@ -32,7 +32,8 @@ die "Use -h for usage:\n  $0, -h for all operations\n  $0, <oper1> -h for usage 
 die "Argumento passado (prod) deve ser 0 ou 1 não indefinido." unless defined($args[7]);
 $client = cmd_soap_msg::get_wsdl($args[5]);
 
-#print("hashPrefix = ",cmd_soap_msg::hashPrefix("SHA256","feito"));
+cmd_soap_msg::debug($args[8]);
+
 
 switch($args[0]) {
     case "test"    { print testall($client,$args);                           }
@@ -82,6 +83,7 @@ sub args_parse{
         }
 
     }
+    #verifyer(@args);
     return @args;
 }
 
@@ -103,6 +105,12 @@ sub info{
     map { print "$_    => $help{$_}\n"; } (@Array = ('-h','-app','-prod','-d')) ;
     exit 1;
 }
+
+#Verifica tamanho máximo dos inputs e os tipos
+sub verifyer{
+    my @args = $_[0];
+}
+
 # Testa todos os comandos
 sub testall{
     print "$TEXT \n  $VERSION\n";

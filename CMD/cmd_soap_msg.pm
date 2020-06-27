@@ -11,13 +11,14 @@ use Bit::Vector;
 use Digest::SHA qw(sha256);
 
 
-# you want some trace?
-use Log::Report mode => 'DEBUG';
+
 
 
 # Função para ativar o debug, permitindo mostrar mensagens enviadas e recebidas do servidor SOAP
 sub debug{
-	return 1;
+	# do you want some trace?
+	# transport -> (client) access to request/response for transport layer
+	use if ($_[0] == 1), SOAP::Lite +trace => [ qw(transport) ];
 }
 
 #FUNCIONA
@@ -86,6 +87,7 @@ sub  getcertificate{
 
 	#Criação do cliente
 	$server =  SOAP::Lite->new(proxy => $res);
+	#alternativa => $server =  SOAP::Lite->service($res);
 	#Obtenção do certificado
 	$answer = $server -> call($method,%data) -> result;
 	
