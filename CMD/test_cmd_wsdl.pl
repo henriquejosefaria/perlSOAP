@@ -137,7 +137,7 @@ sub testall{
     $decoded_arg = decode_base64(encode_base64($args[9]));
     print "50% ... Hash gerada (em base64): $decoded_arg";
     print "60% ... A contactar servidor SOAP CMD para operação CCMovelSign";
-    $args[10] = args[1];
+    $args[10] = $args[1];
     #res["Code"] == res[0]
     #res["ProcessId"] == res[1]
     @res = cmd_soap_msg::ccmovelsign($client, $args, "SHA256");

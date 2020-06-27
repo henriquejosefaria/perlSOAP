@@ -67,7 +67,7 @@ sub  getcertificate{
 
 	# Só aceitamos nesta função 2 argumentos
 	$number_of_args = scalar(@_);
-	die "Insuficient args" unless $number_of_args == 2
+	die "Insuficient args" unless $number_of_args == 2;
 
 	#Obter a escolha do WSDL
 	my $res = @_[0];
@@ -115,15 +115,17 @@ sub ccmovelsign{
 		$_[1][10] = 'docname teste';
 	}
 	# Obtenção do hash 
+	my $hash = $_[1][9];
 	if(! defined $_[1][9]){
-		$_[1][9] = sha256(b'Nobody inspects the spammish repetition');
+		$message = sprintf("%b",'Nobody inspects the spammish repetition');
+		$hash = sha256($message);
 	}
-	$hash = hashPrefix(hashtype, $_[1][9]);
+	$hash = hashPrefix(hashtype, $hash);
 
-	my appId = $_[1][6];
-	my docName = $_[1][10];
-	my pin = $_[1][3];
-	my userId = $_[1][2];
+	my $appId = $_[1][6];
+	my $docName = $_[1][10];
+	my $pin = $_[1][3];
+	my $userId = $_[1][2];
 
 
 	#Criação do cliente
@@ -162,9 +164,9 @@ sub ccmovelmultiplesign{
 	my $method = "CCMovelMultipleSign";
 
 
-	my appId = $_[1][6];
-	my pin = $_[1][3];
-	my userId = $_[1][2];
+	my $appId = $_[1][6];
+	my $pin = $_[1][3];
+	my $userId = $_[1][2];
 
 	#Criação do pedido
 	my %request_data;
@@ -172,8 +174,10 @@ sub ccmovelmultiplesign{
 	$request_data{'request'}{'Pin'} = $pin;
 	$request_data{'request'}{'UserId'} = $userId;
 
-	$first_hash = sha256(b'Nobody inspects the spammish repetition');
-	$second_hash = sha256(b'Always inspect the spammish repetition');
+	my $first_message = sprintf("%b",'Nobody inspects the spammish repetition');
+	my $second_message = sprintf("%b",'Always inspect the spammish repetition');
+	$first_hash = sha256($first_message);
+	$second_hash = sha256($second_message);
 
 	%first_hash_structure = ('Hash' => $first_hash, 'Name' => 'docname teste1', 'id' => '1234');
 	%second_hash_structure = ('Hash' => $second_hash, 'Name' => 'docname teste2', 'id' => '1235');
@@ -198,10 +202,10 @@ sub ccmovelmultiplesign{
 sub validate_otp{
 	# Obter a escolha do WSDL
 	my $res = @_[0];
-	
-	my appId = $_[1][6];
-	my processId = $_[1][5];
-	my code = $_[1][4];
+
+	my $appId = $_[1][6];
+	my $processId = $_[1][5];
+	my $code = $_[1][4];
 
 	my %request_data;
 	$request_data{'applicationId'} = encode('UTF-8',$appId);
