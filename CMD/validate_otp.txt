@@ -1,0 +1,42 @@
+def validate_otp(client, args):
+    
+    request_data = {
+        'applicationId': args.applicationId.encode('UTF-8'),
+        'processId': args.ProcessId,
+        'code': args.OTP,
+    }
+    return client.service.ValidateOtp(**request_data)
+
+
+-----------------------------------------------------------
+
+
+sub validate_otp{
+	
+	#obter a applicationId, o processId e o otp dos argumentos passados
+	my $appId  = $_[1][6];
+	my $processId = $_[x][x];
+	my $otp = $_[x][x];	
+
+
+	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
+	die "Only numbers are accepted!!" unless ($appId =~ /^\d+$/ && $processId =~ /\+\d+/ && $otp =~ /\+\d+/);
+ 
+
+	#Criação de um dicionário para teste
+	$encodedAppId = encode('UTF-8',$appId);
+	%data = ('applicationId' => $encodedAppId, 'processId' => $processId, 'code' => $otp));
+	#método a ser usado
+	$method = "ValidateOtp";
+
+	
+	#Criação do cliente
+	$server =  SOAP::Lite->new(proxy => $res);
+	#Obtenção do certificado
+	$answer = $server -> call($method,%data) -> result;
+	
+	return $answer;
+
+}
+
+

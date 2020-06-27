@@ -20,7 +20,7 @@ $APPLICATION_ID = cmd_config::get_appid();
 
 #Função main do programa.
 #Verifica se o APPLICATION_ID é um número natural (inteiro positivo)
-die "Configure o APPLICATION_ID" unless $APPLICATION_ID =~ /^\d+$/;
+die "Configure o APPLICATION_ID" unless defined $APPLICATION_ID;
 
 #Verificação de um número de inputs suficiente
 $number_of_args = $#ARGV + 1;
@@ -31,6 +31,8 @@ die "Use -h for usage:\n  $0, -h for all operations\n  $0, <oper1> -h for usage 
 
 die "Argumento passado (prod) deve ser 0 ou 1 não indefinido." unless defined($args[7]);
 $client = cmd_soap_msg::get_wsdl($args[5]);
+
+#print("hashPrefix = ",cmd_soap_msg::hashPrefix("SHA256","feito"));
 
 switch($args[0]) {
     case "test"    { print testall($client,$args);                           }
@@ -47,12 +49,15 @@ switch($args[0]) {
 # -f      -> nome do ficheiro
 # -u      -> número do utilizador (ex:+351 000000000)
 # -p      -> pin
-# -otp    -> processId
+# -otp    -> input line code received on selfphone
 # -procId -> Process Id
 # -app    -> APPLICATION_ID
 # -prod   -> escolher prepod ou pod {0,1}
 # -d      -> permite debug {0,1}
+# hash    -> hash a ser produzido mais á frente
+# docName -> nome a ser copiado do ficheiro
 sub args_parse{
+    # VERIFICAR TAMANHO DO INPUT, O PERL PERMITE CRESCIMENTO ATÉ AO FIM DA STACK DA RAM
     my @args;
     GetOptions(
         'h'     => \( my $help = 0),
@@ -105,6 +110,7 @@ sub testall{
     print " 0% ... Leitura de argumentos da linha de comando - file: $args.file user: $args.user pin: $args.pin\n";
     print "10% ... A contactar servidor SOAP CMD para operação GetCertificate\n";
     my ($client, $args) = @_;
+    print("@args");
     $cmd_certs = cmd_soap_msg::getcertificate($client, \@args);
     print "\n\n\n$cmd_certs\n\n\n";
     if (not defined($cmd_certs)){
@@ -127,26 +133,26 @@ sub testall{
     }
     print "40% ... Geração de hash do ficheiro $args.file";
 
-    $args->hash = sha256($file_content); # Geração do Digest
-    $decoded_arg = decode_base64(encode_base64($args->hash));
+    $args[9] = sha256($file_content); # Geração do Digest
+    $decoded_arg = decode_base64(encode_base64($args[9]));
     print "50% ... Hash gerada (em base64): $decoded_arg";
     print "60% ... A contactar servidor SOAP CMD para operação CCMovelSign";
-    $args->docName = args->file;
+    $args[10] = args[1];
     #res["Code"] == res[0]
     #res["ProcessId"] == res[1]
-    @res = cmd_soap_msg::ccmovelsign($client, $args);
+    @res = cmd_soap_msg::ccmovelsign($client, $args, "SHA256");
 
     if ($res[0] != "200"){
         die "Erro $res[0]. Valide o PIN introduzido.";
     }
     print "70% ... ProcessID devolvido pela operação CCMovelSign: $res[1]";
-    $args->ProcessId = @res[1];
+    $args[5] = @res[1];
     print "80% ... A iniciar operação ValidateOtp";
     print "Introduza o OTP recebido no seu dispositivo: ";
     $opt = <STDIN>;
     # Removes new line from the input 
     chomp $opt; 
-    $args->OPT = $opt;
+    $args[4] = $opt;
     print "90% ... A contactar servidor SOAP CMD para operação ValidateOtp";
     #validate_res["Status"]["Code"] == validate_res[0][0]
     #validate_res["Status"]["Message"] == validate_res[0][1]

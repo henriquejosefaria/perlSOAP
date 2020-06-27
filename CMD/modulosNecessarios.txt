@@ -1,0 +1,27 @@
+modulos q é preciso instalar, da seguinte maneira: sudo cpan Crypt:: ...
+
+Crypt::X509
+Crypt::OpenSSL::RSA
+Switch
+SOAP::Lite
+SOAP::WSDL
+XML::Compile::WSDL11
+
+
+
+
+
+
+----------------------------------------
+
+links q podem interessar:
+
+http://www.cpan.org/modules/INSTALL.html
+ 
+http://www.cpan.org/modules/01modules.index.html
+ 
+https://egoleo.wordpress.com/2008/05/19/how-to-install-perl-modules-through-cpan-on-ubuntu-hardy-server/
+ 
+http://manpages.ubuntu.com/manpages/bionic/man3/CPAN.3perl.html
+ 
+https://askubuntu.com/questions/274603/trying-to-install-cpan
