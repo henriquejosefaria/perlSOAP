@@ -75,7 +75,7 @@ sub  getcertificate{
 	#obter a applicationId e o userId dos argumentos passados
 	my $appId  = $_[1][6];
 	my $userId = $_[1][2];
-
+	
 	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
 	die "Only numbers are accepted for UserId!!" unless ($userId =~ /\+\d+/);
 

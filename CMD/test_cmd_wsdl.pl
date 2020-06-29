@@ -8,11 +8,13 @@ use MIME::Base64;
 use Getopt::Long;
 use Switch;
 
+
 use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
 use lib dirname(dirname abs_path $0) . "/CMD/";
 use cmd_config;
 use cmd_soap_msg;
+use verifyers;
 
 $TEXT = "test Command Line Program (for Preprod/Prod Signature CMD (SOAP) version 1.6 technical specification)";
 $VERSION = "version: 1.0";
@@ -20,7 +22,7 @@ $APPLICATION_ID = cmd_config::get_appid();
 
 #Função main do programa.
 #Verifica se o APPLICATION_ID é um número natural (inteiro positivo)
-die "Configure o APPLICATION_ID" unless defined $APPLICATION_ID;
+die "Configure o APPLICATION_ID\n" unless defined $APPLICATION_ID;
 
 #Verificação de um número de inputs suficiente
 $number_of_args = $#ARGV + 1;
@@ -29,7 +31,7 @@ die "Use -h for usage:\n  $0, -h for all operations\n  $0, <oper1> -h for usage 
 #Faz o parser dos argumentos recebidos
 @args = &args_parse;
 
-die "Argumento passado (prod) deve ser 0 ou 1 não indefinido." unless defined($args[7]);
+die "Argumento passado (prod) deve ser 0 ou 1 não indefinido.\n" unless defined($args[7]);
 $client = cmd_soap_msg::get_wsdl($args[5]);
 
 cmd_soap_msg::debug($args[8]);
@@ -41,7 +43,7 @@ switch($args[0]) {
     case "ms"      { print cmd_soap_msg::ccmovelsign($client,$args);         }
     case "mms"     { print cmd_soap_msg::ccmovelmultiplesign($client,$args); }
     case "otp"     { print cmd_soap_msg::validate_otp($client,$args);        }
-    else           { die "Select a proper Option!!" ;                        }
+    else           { die "Select a proper Option!!\n" ;                        }
 }
 
 
@@ -72,6 +74,7 @@ sub args_parse{
         'prod'   => \($args[7] = 0), #default value is 0 -> usa prepod
         'd'      => \($args[8] = 0), #default value is 0 -> sem debug
     );
+
     if(help == 1){
         switch($args[0]){
             case "test"    { print "Automatically test all commands\n";  info(@a = ('-f','-u','-p')); }
@@ -79,11 +82,11 @@ sub args_parse{
             case "ms"      { print "Start signature process\n";          info(@a = ('-u','-p')); }
             case "mms"     { print "Start multiple signature process\n"; info(@a = ('-u','-p')); }
             case "otp"     { print "Validate OTP\n";                     info(@a = ('-otp','-procId')); }
-            else           { die "Select a proper Option!!" ;                    }
+            else           { die "Select a proper Option!!\n" ;          }
         }
 
     }
-    #verifyer(@args);
+    verifyer(\@args);
     return @args;
 }
 
@@ -107,8 +110,19 @@ sub info{
 }
 
 #Verifica tamanho máximo dos inputs e os tipos
+#Verifica sql injection
 sub verifyer{
-    my @args = $_[0];
+    my @args = @{$_[0]};
+
+    verifyers::input(\@args);
+    map{die "I know what your up to! Don't try to SQL inject me!!\n" unless verifyers::sqlInjection($_) == 0;} @args;
+    map{die "I know what your up to! Don't try to XML inject me!!\n" unless verifyers::xmlInjection($_) == 0;} @args;
+    #map{verifyers::} @args;
+    #map{verifyers::} @args;
+    #map{verifyers::} @args;
+    #map{verifyers::} @args;
+    #map{verifyers::} @args;
+
 }
 
 # Testa todos os comandos
@@ -122,22 +136,23 @@ sub testall{
     $cmd_certs = cmd_soap_msg::getcertificate($client, \@args);
     print "\n\n\n$cmd_certs\n\n\n";
     if (not defined($cmd_certs)){
-        die "Impossível obter certificado";
+        die "Impossível obter certificado\n";
     }
     $decoded = Crypt::X509->new(cert => $cmd_certs);
     if ($decoded->notBefore < time()) {
-        die "Certificate: not yet valid!";
+        die "Certificate: not yet valid!\n";
     }
     if ($decoded->not_after < time()) {
-        die "Certificate: invalid expiration time!";
+        die "Certificate: invalid expiration time!\n";
     }
     %certs_chain = ("user" => $decoded->Subject, "ca" => $decoded->Issuer, "root" => $decoded->authorityCertIssuer);
     print "20% ... Certificado emitido para $certs_chain[\"user\"] pela Entidade de Certificação certs_chain[\"ca\"] na hierarquia do certs_chain[\"root\"]";
     print "30% ... Leitura do ficheiro $args.file";
     try{
-        my $file_content = read_file(args->file);
+        open(my $file_content, "<", $args[1]) or die "Ficheiro não encontrado.\n"; # previne pipelining
+        #my $file_content = read_file(args->file);
     } catch{
-        die "Ficheiro não encontrado.";
+        die "Ficheiro não encontrado.\n";
     }
     print "40% ... Geração de hash do ficheiro $args.file";
 
@@ -151,7 +166,7 @@ sub testall{
     @res = cmd_soap_msg::ccmovelsign($client, $args, "SHA256");
 
     if ($res[0] != "200"){
-        die "Erro $res[0]. Valide o PIN introduzido.";
+        die "Erro $res[0]. Valide o PIN introduzido.\n";
     }
     print "70% ... ProcessID devolvido pela operação CCMovelSign: $res[1]";
     $args[5] = @res[1];
@@ -167,7 +182,7 @@ sub testall{
     #validate_res["Signature"] == validate_res[1]
     @validate_res = cmd_soap_msg::validate_otp($client, $args);
     if($validate_res[0][0] != "200"){
-        die "Erro $validate_res[0][0]. $validate_res[0][1]";
+        die "Erro $validate_res[0][0]. $validate_res[0][1]\n";
     }
     $decoded_res = decode_base64(encode_base64($validate_res[1]));
     print "100% ... Assinatura (em base 64) devolvida pela operação ValidateOtp: $decoded_res";
