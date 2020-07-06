@@ -1,0 +1,66 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{graphicx}
+\usepackage[portuges]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{verbatim}
+\usepackage{float}
+\usepackage{caption}
+%Path relative to the .tex file containing the \includegraphics command
+\graphicspath{ {./images/} }
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+\setcounter{secnumdepth}{6}
+\renewcommand\theparagraph{\Alph{paragraph}}
+ 
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+                                      {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                      {0.0001pt \@plus .2ex}%
+                                      {\normalfont\normalsize\bfseries}}
+\renewcommand\subparagraph{\@startsection{subparagraph}{5}{\z@}%
+                                      {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                      {0.0001pt \@plus .2ex}%
+                                      {\normalfont\normalsize\bfseries}}
+ 
+\counterwithin{paragraph}{subsubsection}
+\counterwithin{subparagraph}{paragraph}
+\makeatother
+
+\begin{document}
+\input{title.tex}
+\newpage
+\newpage
+\hfill
+% Aqui começam os capitulos abordados pelo trabalho
+\input{emulacao.tex}
+\newpage
+\input{vulnerabilitys.tex}
+\newpage
+\input{run.tex}
+\newpage
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+% \bibliographystyle{splncs04}
+% \bibliography{mybibliography}
+%
+%\begin{thebibliography}{8}
+
+%\bibitem{ref_intro1}
+%https://www.itu.int/en/ITU-D/Statistics/Pages/stat/default.aspx
+
+
+%\end{thebibliography}
+\end{document}

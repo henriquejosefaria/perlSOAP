@@ -1,24 +1,24 @@
 package cmd_soap_msg;
 
 # preparation
-use SOAP::Lite;
-use SOAP::WSDL;
 use XML::Compile::WSDL11;      # use WSDL version 1.1
 use XML::Compile::SOAP11;      # use SOAP version 1.1
 use XML::Compile::Transport::SOAPHTTP;
 use Encode;             # para encode e decode
 use Bit::Vector;
 use Digest::SHA qw(sha256);
+use XML::Parser;
+use HTTP::Request;
+use HTTP::Parser;
+use MIME::Base64;
 
-
-
-
-
+#FUNCIONA
 # Função para ativar o debug, permitindo mostrar mensagens enviadas e recebidas do servidor SOAP
 sub debug{
 	# do you want some trace?
 	# transport -> (client) access to request/response for transport layer
-	use if ($_[0] == 1), SOAP::Lite +trace => [ qw(transport) ];
+	use if ($_[0] == 1), HTTP::Request +trace => [ qw(all) ];
+	use if ($_[0] == 1), LWP::UserAgent +trace => [ qw(all) ];
 }
 
 #FUNCIONA
@@ -45,8 +45,7 @@ sub get_wsdl{
 # Devolve a hash acrescentada do prefixo do tipo de hash utilizada
 sub hashPrefix{
 	#obter o hashtype e a hash dos argumentos passados
-	my $hashtype  = @_[0];
-	my $hash = @_[1];
+	my ($hashtype,$hash)  = @_;
 
 	die "Only SHA256 available" unless $hashtype eq "SHA256";
 
@@ -62,40 +61,90 @@ sub hashPrefix{
 	return $prefix{"SHA256"} . $hash;
 }
 
-#A TESTAR
+#FUNCIONA
+sub response_parser_certificate{
+	$str = $_[0];
+	@mycerts = split /<\/?GetCertificateResult>/, $str;
+	$certs = $mycerts[1];
+	$i=0;
+	@aux1;
+	
+	@temporary_certs = split /-----BEGIN CERTIFICATE-----/, $certs;
+	@aux = map {split /-----END CERTIFICATE-----/ ,$_} @temporary_certs;
+
+	$length = @aux;
+    die "Wrong number of Certificate" unless $length > 3;
+    
+	map{MIME::Base64::decode($_);} @aux; # meramente por precaução -> não é preciso
+	for ( @aux ) {
+		$_ = '-----BEGIN CERTIFICATE-----'. $_ .'-----END CERTIFICATE-----' ;
+	}
+    
+	map {$_ =~ s/&#xD;/ /g} @aux;
+
+	@certificates;
+	$certificates[0] = $aux[0];
+	$certificates[1] = $aux[2];
+	$certificates[2] = $aux[4];
+
+    @certificates;
+}
+
+#FUNCIONA
 # GetCertificate(applicationId: xsd:base64Binary, userId: xsd:string)
 sub  getcertificate{
+	$SOAP_ACTION = "http://Ama.Authentication.Service/CCMovelSignature/GetCertificate";
+	$stringUrl = "https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc";
 
 	# Só aceitamos nesta função 2 argumentos
 	$number_of_args = scalar(@_);
 	die "Insuficient args" unless $number_of_args == 2;
 
 	#Obter a escolha do WSDL
-	my $res = @_[0];
+	my $wsdl = @_[0];
 	#obter a applicationId e o userId dos argumentos passados
 	my $appId  = $_[1][6];
 	my $userId = $_[1][2];
-	
-	# Verifica se todas as strings inseridas são números naturais e não têm caracters estranhos
-	die "Only numbers are accepted for UserId!!" unless ($userId =~ /\+\d+/);
 
-	#Criação de um dicionário para teste
-	$encodedAppId = encode('UTF-8',$appId);
-	%data = ('applicationId' => $encodedAppId , 'userId' => $userId);
-	#método a ser usado
-	my $method = "GetCertificate";
+	#Criação de um dicionário
+	$encodedAppId = encode_base64(encode('UTF-8',$appId));
+	$body = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" .
+                    "<soapenv:Header/>" .
+                    "<soapenv:Body>" .
+                    "<GetCertificate xmlns=\"http://Ama.Authentication.Service/\">" .
+                    "<applicationId>" . $encodedAppId . "</applicationId>" .
+                    "<userId>" . $userId . "</userId>" .
+                    "</GetCertificate>" .
+                    "</soapenv:Body>" .
+                    "</soapenv:Envelope>";
 
-	#Criação do cliente
-	$server =  SOAP::Lite->new(proxy => $res);
-	#alternativa => $server =  SOAP::Lite->service($res);
-	#Obtenção do certificado
-	$answer = $server -> call($method,%data) -> result;
-	
-	return $answer
+    ########################################################
+    $request = HTTP::Request->new('POST'=> $stringUrl
+    	,[
+    		'Accept-Encoding' => 'UTF-8'
+    		,'Content-Type' =>'text/xml;charset=utf-8'
+    		,SOAPAction => $SOAP_ACTION
+    	]
+    	,$body);
+
+    $ua = LWP::UserAgent->new;
+	$response = $ua->request($request);
+	if ($response->is_success) {
+		@certificates = response_parser_certificate($response->content);
+	} else{
+		die "Erro " . $response->status_line . ". Impossível obter certificado.\n";
+	}
+	@certificates;
 }
 
+#FUNCIONA
+sub response_parser_signature{
+	$str = $_[0];
+	@mySignature = split /<\/?a:ProcessId>/, $str;
+	return $mySignature[1];
+}
 
-
+#FUNCIONA
 # CCMovelSign(request: ns2:SignRequest) -> CCMovelSignResult: ns2:SignStatus
 # ns2:SignRequest(ApplicationId: xsd:base64Binary, DocName: xsd:string,
 #                  Hash: xsd:base64Binary, Pin: xsd:string, UserId: xsd:string)
@@ -103,11 +152,13 @@ sub  getcertificate{
 #                   Message: xsd:string, ProcessId: xsd:string)
 sub ccmovelsign{
 
+	$SOAP_ACTION = "http://Ama.Authentication.Service/CCMovelSignature/CCMovelSign";
+	$stringUrl = "https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc";
 	# Obter a escolha do WSDL
-	my $res = @_[0];
+	my $wsdl = @_[0];
 	# Obter o tipo de hash a usar
 	my $hashtype;
-	if(! defined $_[2]){
+	if(! defined($_[2])){
 		$hashtype = "SHA256";
 	} else{
 		$hashtype = $_[2];
@@ -122,29 +173,46 @@ sub ccmovelsign{
 		$message = sprintf("%b",'Nobody inspects the spammish repetition');
 		$hash = sha256($message);
 	}
-	$hash = hashPrefix(hashtype, $hash);
+	$hash = encode_base64(encode('UTF-8',hashPrefix($hashtype, $hash)));
 
 	my $appId = $_[1][6];
 	my $docName = $_[1][10];
 	my $pin = $_[1][3];
 	my $userId = $_[1][2];
 
+	$encodedAppId = encode_base64(encode('UTF-8',$appId));
 
-	#Criação do cliente
-	$server =  SOAP::Lite->new(proxy => $res);
-	#método a ser usado
-	my $method = "CCMovelSign";
+	$body = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" .
+                    "<soapenv:Body>" .
+                    "<CCMovelSign xmlns=\"http://Ama.Authentication.Service/\">" .
+                    "<request xmlns:a=\"http://schemas.datacontract.org/2004/07/Ama.Structures.CCMovelSignature\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\">" .
+                    "<a:ApplicationId>" . $encodedAppId . "</a:ApplicationId>" .
+                    "<a:DocName>" . $docName . "</a:DocName>" .
+                    "<a:Hash>" . $hash . "</a:Hash>" .
+                    "<a:Pin>" . $pin . "</a:Pin>" .
+                    "<a:UserId>" . $userId . "</a:UserId>" .
+                    "</request>" .
+                    "</CCMovelSign>" .
+                    "</soapenv:Body>" .
+                    "</soapenv:Envelope>";
 
-	my %request_data;
-	$request_data{'request'}{'ApplicationId'} = encode('UTF-8',$appId);
-	$request_data{'request'}{'DocName'} = $docName;
-	$request_data{'request'}{'Hash'} = $hash;
-	$request_data{'request'}{'Pin'} = $pin;
-	$request_data{'request'}{'UserId'} =  $userId;
+    ########################################################
+    $request = HTTP::Request->new('POST'=> $stringUrl
+    	,[
+    		'Accept-Encoding' => 'UTF-8'
+    		,'Content-Type' =>'text/xml;charset=utf-8'
+    		,SOAPAction => $SOAP_ACTION
+    	]
+    	,$body);
+    $ua = LWP::UserAgent->new;
+	$response = $ua->request($request);
+	if ($response->is_success) {
+		$processId = response_parser_signature($response->content);
+	} else{
+		die"Erro " . $response->status_line . ". Valide o PIN introduzido.\n";
+	}
+	return $processId;
 
-	#Obtenção da resposta
-	$answer = $server -> call($method,%request) -> result;
-	return $answer;
 }
 
 
@@ -158,41 +226,67 @@ sub ccmovelsign{
 # ns2:SignStatus(Code: xsd:string, Field: xsd:string, FieldValue: xsd:string,
 #                   Message: xsd:string, ProcessId: xsd:string)
 sub ccmovelmultiplesign{
+	$SOAP_ACTION = "http://Ama.Authentication.Service/CCMovelSignature/CCMovelMultipleSign";
+	$stringUrl = "https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc";
 	# Obter a escolha do WSDL
-	my $res = @_[0];
-	#Criação do cliente
-	$server =  SOAP::Lite->new(proxy => $res);
-	#método a ser usado
-	my $method = "CCMovelMultipleSign";
-
+	my $wsdl = @_[0];
 
 	my $appId = $_[1][6];
 	my $pin = $_[1][3];
 	my $userId = $_[1][2];
+	$id1 = '1234';
+	$id2 = '1235';
+	$body = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" .
+                    "<soapenv:Body>" .
+                    "<CCMovelMultipleSign xmlns=\"http://Ama.Authentication.Service/\">" .
+                    "<request xmlns:a=\"http://schemas.datacontract.org/2004/07/Ama.Structures.CCMovelSignature\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\">" .
 
-	#Criação do pedido
-	my %request_data;
-	$request_data{'request'}{'ApplicationId'} = encode('UTF-8',$appId);
-	$request_data{'request'}{'Pin'} = $pin;
-	$request_data{'request'}{'UserId'} = $userId;
+                    "<a:ApplicationId>" . $encodedAppId . "</a:ApplicationId>" .
+                    "<a:Pin>" . $pin . "</a:Pin>" .
+                    "<a:UserId>" . $userId . "</a:UserId>" .
 
-	my $first_message = sprintf("%b",'Nobody inspects the spammish repetition');
-	my $second_message = sprintf("%b",'Always inspect the spammish repetition');
-	$first_hash = sha256($first_message);
-	$second_hash = sha256($second_message);
+                    "<documents>" .
 
-	%first_hash_structure = ('Hash' => $first_hash, 'Name' => 'docname teste1', 'id' => '1234');
-	%second_hash_structure = ('Hash' => $second_hash, 'Name' => 'docname teste2', 'id' => '1235');
+                    "<a:Hash>" . $hash . "</a:Hash>" .
+                    "<a:DocName>" . $docName . "</a:DocName>" .
+                    "<a:id>" . $id1 . "</a:id>" .
 
-	@hash_structure = ($first_hash_structure,$second_hash_structure);
+					"<a:Hash>" . $hash . "</a:Hash>" .
+                    "<a:DocName>" . $docName . "</a:DocName>" .
+                    "<a:id>" . $id2 . "</a:id>" .
 
-	$request_data{'documents'}{'HashStructure'} = @hash_structure;
+                    "</documents>" .
+                    "</request>" .
+                    "</CCMovelMultipleSign>" .
+                    "</soapenv:Body>" .
+                    "</soapenv:Envelope>";
 
-	#Obtenção da resposta
-	$answer = $server -> call($method,%request_data) -> result;
-	return $answer;
+    $request = HTTP::Request->new('POST'=> $stringUrl
+    	,[
+    		'Accept-Encoding' => 'UTF-8'
+    		,'Content-Type' =>'text/xml;charset=utf-8'
+    		,SOAPAction => $SOAP_ACTION
+    	]
+    	,$body);
+    $ua = LWP::UserAgent->new;
+	$response = $ua->request($request);
+	if ($response->is_success) {
+		$processId = response_parser_signature($response->content);
+	} else{
+		die"Erro " . $response->status_line . ". Valide o PIN introduzido.\n";
+	}
+	return $processId;
+
 }
 
+#FUNCIONA
+sub response_parser_otp{
+	$str = $_[0];
+	@mySignature = split /<\/?a:Signature>/, $str;
+	return $mySignature[1];
+}
+
+#FUNCIONA
 # ValidateOtp(code: xsd:string, processId: xsd:string, applicationId:
 #                      xsd:base64Binary) -> ValidateOtpResult: ns2:SignResponse
 # ns2:SignResponse(ArrayOfHashStructure: ns2:ArrayOfHashStructure,
@@ -202,25 +296,46 @@ sub ccmovelmultiplesign{
 # ns2:SignStatus(Code: xsd:string, Field: xsd:string, FieldValue: xsd:string,
 #                                   Message: xsd:string, ProcessId: xsd:string)
 sub validate_otp{
+	$SOAP_ACTION = "http://Ama.Authentication.Service/CCMovelSignature/ValidateOtp";
+	$stringUrl = "https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/CCMovelDigitalSignature.svc";
+
 	# Obter a escolha do WSDL
-	my $res = @_[0];
+	my $wsdl = @_[0];
 
 	my $appId = $_[1][6];
 	my $processId = $_[1][5];
-	my $code = $_[1][4];
+	my $otp = $_[1][4];
 
-	my %request_data;
-	$request_data{'applicationId'} = encode('UTF-8',$appId);
-	$request_data{'processId'} = $processId;
-	$request_data{'code'} = $code;
+	$encodedAppId = encode_base64(encode('UTF-8',$appId));
 
-	#Criação do cliente
-	$server =  SOAP::Lite->new(proxy => $res);
-	#método a ser usado
-	my $method = "ValidateOtp";
-	#Obtenção da resposta
-	$answer = $server -> call($method,%request_data) -> result;
-	return $answer;
+
+	$body = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" .
+                    "<soapenv:Header/>" .
+                    "<soapenv:Body>" .
+                    "<ValidateOtp xmlns=\"http://Ama.Authentication.Service/\">" .
+                    "<code>" . $otp . "</code>" .
+                    "<processId>" . $processId . "</processId>" .
+                    "<applicationId>" . $encodedAppId . "</applicationId>" .
+                    "</ValidateOtp>" .
+                    "</soapenv:Body>" .
+                    "</soapenv:Envelope>";
+
+	$request = HTTP::Request->new('POST'=> $stringUrl
+    	,[
+    		'Accept-Encoding' => 'UTF-8'
+    		,'Content-Type' =>'text/xml;charset=utf-8'
+    		,SOAPAction => $SOAP_ACTION
+    	]
+    	,$body);
+
+    $ua = LWP::UserAgent->new;
+	$response = $ua->request($request);
+	if ($response->is_success) {
+		$signature = response_parser_otp($response->content);
+	} else{
+		die "Erro " . $response->status_line . ". Impossível obter certificado.\n";
+	}
+	return $signature;
 }
 
 

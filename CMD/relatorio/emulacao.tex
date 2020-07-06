@@ -1,0 +1,36 @@
+\section{Criação da aplicação CMD-SOAP em Perl}
+
+Para este trabalho seguiu-se a estrutura do programa original separando o corpo da aplicação, que ficou no ficheiro test\_cmd\_wsdl.pl, das operações sobre ficheiros, chave móvel e ligação ao servidor, que ficaram no modulo cmd\_soap\_msg.pm, e da variável APPLICATION\_ID que ficou no modulo cmd\_config.pm. Adicionalmente foi criado um módulo para tratamento de segurança da aplicação chamado \textit{verifiers.pm}.\newline
+
+
+Para o corpo do programa o Perl começa por importar a variável \textit{\$APPLICATION\_ID} do modulo \textit{cmd\_config} através da subrotina \textit{get\_appid()}. Caso esta variável não esteja definida o programa termina. \newline
+Em seguida é verificado se o programa foi invocado com argumentos, caso contrário o programa também termina. Caso tenha sido invocado com argumentos é realizado um parser dos dados recorrendo ao módulo \textit{Getopt::Long} que faz uso de flags para identificar inequivocamente cada variável recebida como parâmetro. Em seguida estes argumentos são colecionados num array cujas variáveis definidas serão verificadas fazendo uso das subrotinas pertencentes ao módulo \textit{verifiers.pm}.\newline
+Caso o input passe nas verificações de segurança, o pedido do cliente é passado ao módulo \textit{cmd\_soap\_msg.pm} e dependendo do tipo de operação pedida pelo utilizador é chamada a respetiva subrotina. Caso o utilizador pretenda testar todo o programa pode usar a operação \textit{test} que corre todas as subrotinas por ordem de forma a realizar a assinatura com a chave móvel digital sobre o ficheiro fornecido.\newline
+Convêm referir que, ao contrário do que foi realizado no ficheiro original \textit{test\_cmd\_wsdl.py} as verificações de segurança referentes ao código das mensagens recebidas do servidor foram realizados no módulo \textit{cmd\_soap\_msg.pm}.
+
+\subsection{Módulos}
+
+Para instalar os módulos necessários pode-se utilizar uma ferra menta chamada \textit{cpanm}. Pode-se descarregar esta ferramenta para linux com o comando de terminal \textit{sudo apt install cpanminus}.\newline
+Após instalar a ferramenta deve-se garantir que se tem os seguintes módulos instalados\footnote{Nota: Para descarregar os módulos use no terminal o comando cpanm install 'nome do módulo'}:
+
+\begin{enumerate}
+	\item XML::Compile::WSDL11
+	\item XML::Compile::SOAP11
+	\item XML::Compile::Transport::SOAPHTTP
+	\item Encode
+	\item Bit::Vector
+	\item Digest::SHA
+	\item HTTP::Request
+	\item HTTP::Parser
+	\item MIME::Base64
+	\item File::Basename
+	\item File::Slurp
+	\item Try::Tiny
+	\item Getopt::Long
+	\item Switch
+	\item File::Basename
+	\item Crypt::OpenSSL::X509
+	\item Crypt::PK::RSA
+	\item Crypt::Misc
+	\item Carp::Assert
+\end{enumerate}
