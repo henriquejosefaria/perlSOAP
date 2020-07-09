@@ -52,7 +52,7 @@ sub input{
 	}
 	if(defined $args[4]){
 		#print("a testar OTP!\n");
-		die "Wrong OTP!! The notation is: XXXX\n" unless $args[4] =~ /^[0-9]{4}$/;
+		die "Wrong OTP!! The notation is: XXXX\n" unless $args[4] =~ /^[0-9]{6}$/;
 		
 	}
 }
