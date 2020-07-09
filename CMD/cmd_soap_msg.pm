@@ -331,12 +331,10 @@ sub validate_otp{
     $ua = LWP::UserAgent->new;
 	$response = $ua->request($request);
 	if ($response->is_success) {
-		print($response->content);
 		$signature = response_parser_otp($response->content);
 	} else{
 		die "Erro " . $response->status_line . ". Impossível obter certificado.\n";
 	}
-	print($signature);
 	return $signature;
 }
 
