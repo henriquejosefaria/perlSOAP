@@ -66,16 +66,16 @@ sub args_parse{
     # VERIFICAR TAMANHO DO INPUT, O PERL PERMITE CRESCIMENTO ATÉ AO FIM DA STACK DA RAM
     my @args;
     GetOptions(
-        'h'      => \(my $help),
-        'o:s'    => \$args[0],
-        'f:s'    => \$args[1],
-        'u=s'    => \$args[2],
-        'p:s'    => \$args[3],
-        'otp:s'  => \$args[4],
-        'procId' => \$args[5],
-        'app:s'  => \($args[6] = $APPLICATION_ID), #default está definido no modulo cmd_config
-        'prod'   => \($args[7] = 0), #default value is 0 -> usa prepod
-        'd'      => \($args[8] = 0), #default value is 0 -> sem debug
+        'h'        => \(my $help),
+        'o:s'      => \$args[0],
+        'f:s'      => \$args[1],
+        'u=s'      => \$args[2],
+        'p:s'      => \$args[3],
+        'otp:s'    => \$args[4],
+        'procId:s' => \$args[5],
+        'app:s'    => \($args[6] = $APPLICATION_ID), #default está definido no modulo cmd_config
+        'prod'     => \($args[7] = 0), #default value is 0 -> usa prepod
+        'd'        => \($args[8] = 0), #default value is 0 -> sem debug
     );
 
     if(defined($help)){
